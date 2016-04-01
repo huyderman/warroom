@@ -1,0 +1,40 @@
+#!/usr/bin/env ruby
+
+require 'war_room'
+require 'gli'
+
+include GLI::App
+
+program_desc 'A collection of tools for table-top RPG game-masters.'
+
+version WarRoom::VERSION
+
+pre do |global_options, command, options, args|
+  # Nothing yet..
+  true
+end
+
+desc 'Tools for working with roll-tables'
+command :table do |c|
+  c.desc 'Generate a roll-table'
+  c.arg :data_file
+  c.command :generate do |c|
+    c.desc 'Die type to generate table for'
+    c.flag [:d, :die], type: String, default_value: 'd4,d6,d8,d10,d12,d20', must_match: /d[0-9]+(,d[0-9]+)*/
+
+    c.action do |global_options, options, args|
+      input_file = args.first
+      help_now! 'Input data-file not specified' unless input_file
+
+      data = WarRoom::Table::Generator.load_yaml(args.first)
+      table = WarRoom::Table::Generator.generate(*options[:die].split(','), data)
+      if table
+        puts table
+      else
+        puts 'Unable to generate table for the given die/dice'
+      end
+    end
+  end
+end
+
+exit run(ARGV)
