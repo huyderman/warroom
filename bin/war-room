@@ -23,12 +23,18 @@ command :table do |c|
     c.desc 'Die type to generate table for'
     c.flag [:d, :die], type: String, default_value: 'd4,d6,d8,d10,d12,d20', must_match: /d[0-9]+(,d[0-9]+)*/
 
+    c.desc 'Always include all rows'
+    c.switch 'include-all', default_value: true
+
     c.action do |global_options, options, args|
       input_file = args.first
       help_now! 'Input data-file not specified' unless input_file
 
       data = WarRoom::Table::Generator.load_yaml(args.first)
-      table = WarRoom::Table::Generator.generate(*options[:die].split(','), data)
+      opts = {
+          include_all: options['include-all']
+      }
+      table = WarRoom::Table::Generator.generate(*options[:die].split(','), data, **opts)
       if table
         puts table
       else

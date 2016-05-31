@@ -44,11 +44,11 @@ module WarRoom
         end
       end
 
-      def generate(*dice, data)
+      def generate(*dice, data, **opts)
         tables = dice.map do |die|
           case die
             when /^d([0-9]+)$/
-              Generator.generate_linear(Regexp.last_match(1).to_i, data)
+              Generator.generate_linear(Regexp.last_match(1).to_i, data, opts)
             else
               raise "Die type not supported: #{die}"
           end
@@ -57,14 +57,19 @@ module WarRoom
         tables.compact.sort_by { |table| table.metadata[:error][:mse] }.first
       end
 
-      def generate_linear(die_size, table)
+      def generate_linear(die_size, table, include_all: true, **_)
         total_rows = table.length
-        return nil if die_size < total_rows
+        return nil if include_all && die_size < total_rows
 
         die_weighted_table = table.normalize(die_size)
         integer_rows       = die_weighted_table.map do |row|
-          WeightRow.new weight: row.weight > 1 ? row.weight.to_i : 1,
-                        value: row.value
+          weight = if !include_all || row.weight > 1
+                     row.weight.to_i
+                   else
+                     1
+                   end
+          WeightRow.new weight: weight,
+                        value:  row.value
         end
         integer_table = WeightTable.new rows: integer_rows
 
@@ -77,7 +82,7 @@ module WarRoom
 
         remainders.each_with_index
                   .sort_by { |remainder, _| remainder }
-                  .first(die_size - sum).each do |_, index|
+                  .last(die_size - sum).each do |_, index|
           remainders[index] -= 1
           integer_table.rows[index] += 1
         end
@@ -87,7 +92,7 @@ module WarRoom
         }
 
         pointer = 0
-        final_table = integer_table.map do |row|
+        final_table = integer_table.reject{ |row| row.weight == 0 }.map do |row|
           range = (pointer + 1).to_i..(pointer + row.weight).to_i
           pointer = range.end
 
