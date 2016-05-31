@@ -30,11 +30,11 @@ command :table do |c|
       input_file = args.first
       help_now! 'Input data-file not specified' unless input_file
 
-      data = WarRoom::Table::Generator.load_yaml(args.first)
+      data = WarRoom::DieTable::Generator.load_yaml(args.first)
       opts = {
           include_all: options['include-all']
       }
-      table = WarRoom::Table::Generator.generate(*options[:die].split(','), data, **opts)
+      table = WarRoom::DieTable::Generator.generate(options[:die].split(','), data, **opts)
       if table
         puts table
       else

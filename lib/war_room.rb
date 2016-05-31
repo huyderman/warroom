@@ -1,3 +1,3 @@
 require 'war_room/version'
-require 'war_room/table'
-require 'war_room/table/generator'
+require 'war_room/die_table'
+require 'war_room/die_table/generator'
