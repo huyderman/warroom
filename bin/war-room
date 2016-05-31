@@ -2,6 +2,7 @@
 
 require 'war_room'
 require 'gli'
+require 'terminal-table'
 
 include GLI::App
 

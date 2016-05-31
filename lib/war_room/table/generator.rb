@@ -1,13 +1,48 @@
 require 'yaml'
+require 'dry-types'
+require 'war_room/types'
 require 'war_room/table'
-require 'war_room/refinements/array_refinements'
 
 module WarRoom
-  using ArrayRefinements
-
   class Table
     module Generator
       module_function
+
+      class WeightRow < Dry::Types::Struct
+        attribute :weight, Types::Coercible::Float
+        attribute :value, Types::Coercible::String
+
+        def +(n)
+          WeightRow.new weight: weight+n, value: value
+        end
+      end
+
+      class WeightTable < Dry::Types::Struct
+        include Enumerable
+
+        attribute :rows, Types::Array.member(WeightRow)
+
+        def each(&block)
+          rows.each(&block)
+        end
+
+        def length
+          rows.length
+        end
+
+        def normalize(n = 1.0)
+          total_weight = weight_sum
+          normalized_rows = rows.map do |row|
+            WeightRow.new weight: row.weight / total_weight * n,
+                          value:  row.value
+          end
+          WeightTable.new rows: normalized_rows
+        end
+
+        def weight_sum
+          rows.map(&:weight).reduce(:+)
+        end
+      end
 
       def generate(*dice, data)
         tables = dice.map do |die|
@@ -22,54 +57,41 @@ module WarRoom
         tables.compact.sort_by { |table| table.metadata[:error][:mse] }.first
       end
 
-      def generate_linear(die_size, data)
-        total_rows = data.length
+      def generate_linear(die_size, table)
+        total_rows = table.length
         return nil if die_size < total_rows
 
-        weight_total = data.map(&:first).reduce(:+)
-
-        die_weighted_table = data.map { |weight, value| [weight / weight_total * die_size, value] }
-        integer_table = die_weighted_table.map { |weight, value| [weight.to_i, value] }
-
-        remainder_table = die_weighted_table
-                          .map(&:first)
-                          .zip(integer_table.map(&:first))
-                          .map { |a, b| a - b }
-                          .each_with_index.to_a
-
-        # Minimum integer weight should be 1
-        integer_table.each_with_index
-                     .reject { |(weight, _), _| weight > 0 }
-                     .each do |_, index|
-          integer_table[index][0] += 1
-          remainder_table[index][0] -= 1
+        die_weighted_table = table.normalize(die_size)
+        integer_rows       = die_weighted_table.map do |row|
+          WeightRow.new weight: row.weight > 1 ? row.weight.to_i : 1,
+                        value: row.value
         end
+        integer_table = WeightTable.new rows: integer_rows
 
-        sum = integer_table.map(&:first).reduce(&:+)
-
+        sum = integer_table.weight_sum.to_i
         return nil if sum > die_size
 
-        remainder_table.sort! { |row_1, row_2| row_1.first <=> row_2.first }
+        remainders = die_weighted_table.map(&:weight)
+                     .zip(integer_table.map(&:weight))
+                     .map { |a, b| a - b }
 
-        (die_size - sum).times do
-          remainder, index = remainder_table.pop
-          remainder -= 1
-          integer_table[index][0] += 1
-          remainder_table.insert([remainder, index]) do |other_remainder, _|
-            remainder <= other_remainder
-          end
+        remainders.each_with_index
+                  .sort_by { |remainder, _| remainder }
+                  .first(die_size - sum).each do |_, index|
+          remainders[index] -= 1
+          integer_table.rows[index] += 1
         end
 
         metadata = {
-            error: calculate_error(die_size, integer_table, remainder_table)
+            error: calculate_error(die_size, integer_table.rows, remainders)
         }
 
         pointer = 0
-        final_table = integer_table.map do |weight, value|
-          range = (pointer + 1)..(pointer + weight)
+        final_table = integer_table.map do |row|
+          range = (pointer + 1).to_i..(pointer + row.weight).to_i
           pointer = range.end
 
-          {range: range, result: value}
+          { range: range, result: row.value }
         end
 
         WarRoom::Table.new die: "d#{die_size}",
@@ -77,13 +99,13 @@ module WarRoom
                            metadata: metadata
       end
 
-      def calculate_error(die_size, integer_table, remainder_table)
-        relative_errors = remainder_table
-                              .map(&:first)
-                              .zip(integer_table.map(&:first))
-                              .map { |remainder, value| (remainder / value).abs }
+      def calculate_error(die_size, integer_table, remainders)
+        relative_errors = remainders
+                          .zip(integer_table.map(&:weight))
+                          .map { |remainder, value| (remainder / value).abs }
 
-        mse = remainder_table.map { |remainder, _| (remainder/die_size)**2 }.reduce(&:+) / remainder_table.length
+        mse = remainders.map { |remainder| (remainder/die_size)**2 }
+                        .reduce(&:+) / remainders.length
 
         {
             mean: relative_errors.reduce(&:+) / relative_errors.length,
@@ -93,10 +115,11 @@ module WarRoom
       end
 
       def load_yaml(file)
-        YAML.load_file(file).map do |pair|
+        rows = YAML.load_file(file).map do |pair|
           weight, value = pair.flatten
-          [weight.to_f, value.to_s]
+          WeightRow.new weight: weight, value: value
         end
+        WeightTable.new rows: rows
       end
     end
   end

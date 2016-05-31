@@ -1,22 +1,17 @@
-require 'virtus'
+require 'dry-types'
 require 'terminal-table'
+require 'war_room/types'
 
 module WarRoom
-  class Table
-    include Virtus.model
-
-    class TableRow
-      include Virtus.value_object
-
-      values do
-        attribute :range, Range
-        attribute :result
-      end
+  class Table < Dry::Types::Struct
+    class TableRow < Dry::Types::Struct
+      attribute :range, Range
+      attribute :result, Types::Coercible::String
     end
 
-    attribute :die,      String
-    attribute :rows,     Array[TableRow]
-    attribute :metadata, Hash[Symbol => Object]
+    attribute :die,      Types::Coercible::String
+    attribute :rows,     Types::Coercible::Array.member(TableRow)
+    attribute :metadata, Types::Hash
 
     def to_s
       table_rows = rows.map do |table_row|
