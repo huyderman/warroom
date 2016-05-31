@@ -27,16 +27,20 @@ module WarRoom
 
         attribute :rows, Types::Array.member(WeightRow)
 
-        def each(&block)
-          rows.each(&block)
+        def each
+          return rows.each unless block_given?
+
+          rows.each { |row| yield(row) }
         end
 
-        def reject(&block)
-          WeightTable.new(rows: rows.reject(&block))
+        def reject
+          return rows.reject unless block_given?
+
+          WeightTable.new(rows: rows.reject { |row| yield(row) })
         end
 
-        def map_table(&block)
-          WeightTable.new(rows: rows.map(&block))
+        def map_table
+          WeightTable.new(rows: rows.map { |row| yield(row) })
         end
 
         def map_weights
@@ -50,11 +54,11 @@ module WarRoom
           rows.length
         end
 
-        def normalize(n = 1.0)
+        def normalize(size = 1.0)
           total_weight = weight_sum
 
           map_weights do |weight|
-            weight / total_weight * n
+            weight / total_weight * size
           end
         end
 
