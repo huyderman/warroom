@@ -165,12 +165,14 @@ module WarRoom
       end
 
       def calculate_error(die_size, integer_table, remainders)
+        absolute_errors = remainders
+                          .map { |remainder| (remainder / die_size).abs }
+
         relative_errors = remainders
                           .zip(integer_table.map(&:weight))
-                          .map { |remainder, value| (remainder / value).abs }
+                          .map { |remainder, weight| (remainder / (remainder + weight)).abs }
 
-        mse = remainders.map { |remainder| (remainder / die_size)**2 }
-                        .reduce(:+) / remainders.length
+        mse = absolute_errors.map { |error| (error)**2 }.reduce(:+) / absolute_errors.length
 
         {
           mean: relative_errors.reduce(:+) / relative_errors.length,
