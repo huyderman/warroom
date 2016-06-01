@@ -71,13 +71,37 @@ module WarRoom
         tables = dice.map do |die|
           case die
           when /^d([0-9]+)$/
-            Generator.generate_linear(Regexp.last_match(1).to_i, data, opts)
+            die_size = Regexp.last_match(1)
+            digits   = die_size.length
+            if digits > 1 && die_size.chars.reduce { |a, b| a == b && a }
+              Generator.generate_nn(die_size[0].to_i, digits, data, opts)
+            else
+              Generator.generate_linear(die_size.to_i, data, opts)
+            end
           else
             raise "Die type not supported: #{die}"
           end
         end
 
         tables.compact.sort_by { |table| table.metadata[:error][:mse] }.first
+      end
+
+      def generate_nn(digit, digits, data, **opts)
+        digit     = 10 if digit == 0
+        table     = Generator.generate_linear((digit**digits).to_i, data, opts)
+        die       = digit == 10 ? "d#{'0' * digits}" : "d#{digit.to_s * digits}"
+        table     = DieTable.new(**table, die: die)
+
+        digit_set = digit == 10 ? (0...digit) : (1..digit)
+        numbers   = ([digit_set.to_a] * digits).reduce(&:product).map(&:join)
+        numbers.push(numbers.shift) if digit == 10
+
+        table.rows.map! do |row|
+          range = Range.new(numbers[row.range.begin - 1], numbers[row.range.end - 1])
+          DieTableRow.new(range: range, result: row.result)
+        end
+
+        table
       end
 
       def generate_linear(die_size, table, include_all: true, **_)
