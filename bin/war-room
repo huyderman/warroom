@@ -2,7 +2,7 @@
 
 require 'war_room'
 require 'gli'
-require 'terminal-table'
+require 'tty-table'
 
 include GLI::App
 
@@ -34,9 +34,20 @@ command :table do |c|
       opts = {
           include_all: options['include-all']
       }
-      table = WarRoom::DieTable::Generator.generate(options[:die].split(','), data, **opts)
-      if table
-        puts table
+      die_table = WarRoom::DieTable::Generator.generate(options[:die].split(','), data, **opts)
+      if die_table
+        filter = lambda do |range|
+          if range.begin != range.end
+            "#{range.begin}–#{range.end}"
+          else
+            range.begin
+          end
+        end
+        rows = die_table.rows.map(&:to_a)
+        rows.map! { |row| [filter[row[0]], row[1]] }
+
+        table = TTY::Table.new(header: [die_table.die, 'Result'], rows: rows)
+        puts table.render(:unicode, padding: [0, 1])
       else
         puts 'Unable to generate table for the given die/dice'
       end
