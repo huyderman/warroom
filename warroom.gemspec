@@ -16,7 +16,7 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
 
-  spec.add_dependency 'gli', '~> 2.3'
+  spec.add_dependency 'trollop', '~> 2.1'
   spec.add_dependency 'dry-types', '~> 0.8.0'
   spec.add_dependency 'tty', '~> 0.5.0'
 

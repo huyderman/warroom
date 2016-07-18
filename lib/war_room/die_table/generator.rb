@@ -67,7 +67,7 @@ module WarRoom
         end
       end
 
-      def generate(dice, data, **opts)
+      def generate(data, dice:, **opts)
         tables = dice.map do |die|
           case die
           when /^d([0-9]+)$/
@@ -104,14 +104,14 @@ module WarRoom
         table
       end
 
-      def generate_linear(die_size, table, include_all: true, **_)
+      def generate_linear(die_size, table, drop_rows: false, **_)
         total_rows = table.length
 
         # Do we have more rows than sides on the die?
         if die_size < total_rows
           # If we can't drop rows, we can't generate
           # a valid table for this die size
-          return nil if include_all
+          return nil unless drop_rows
         end
 
         # Normalize weights to the given die size
@@ -121,7 +121,7 @@ module WarRoom
         integer_table = normalized_table.map_weights(&:to_i)
 
         # If all rows are to be included, all weights are set to minimum 1
-        if include_all
+        unless drop_rows
           integer_table = integer_table.map_weights do |weight|
             weight > 0 ? weight : 1
           end

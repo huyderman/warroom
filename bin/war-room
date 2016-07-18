@@ -1,58 +1,64 @@
 #!/usr/bin/env ruby
 
 require 'war_room'
-require 'gli'
+require 'trollop'
 require 'tty-table'
 
-include GLI::App
+executable = File.basename(__FILE__)
+_ = Trollop::options do
+  banner <<~TEXT.chomp
+    A collection of tools for table-top RPG game-masters.
 
-program_desc 'A collection of tools for table-top RPG game-masters.'
+    Usage: #{executable} <command> [options]
 
-version WarRoom::VERSION
+    Commands:
+      table     Generate a roll-table
 
-pre do |global_options, command, options, args|
-  # Nothing yet..
-  true
+    Options:
+  TEXT
+
+  version WarRoom::VERSION
+  stop_on 'table'
 end
 
-desc 'Tools for working with roll-tables'
-command :table do |c|
-  c.desc 'Generate a roll-table'
-  c.arg :data_file
-  c.command :generate do |c|
-    c.desc 'Die type to generate table for'
-    c.flag [:d, :die], type: String, default_value: 'd4,d6,d8,d10,d12,d20', must_match: /d[0-9]+(,d[0-9]+)*/
+cmd = ARGV.shift
+Trollop::educate unless cmd
 
-    c.desc 'Always include all rows'
-    c.switch 'include-all', default_value: true
+case cmd
+when 'table'
+  cli_opts = Trollop::options do
+    banner <<~TEXT.chomp
+      Generate a roll-table
 
-    c.action do |global_options, options, args|
-      input_file = args.first
-      help_now! 'Input data-file not specified' unless input_file
+      Usage: #{executable} #{cmd} <data.yml> [options]
 
-      data = WarRoom::DieTable::Generator.load_yaml(args.first)
-      opts = {
-          include_all: options['include-all']
-      }
-      die_table = WarRoom::DieTable::Generator.generate(options[:die].split(','), data, **opts)
-      if die_table
-        filter = lambda do |range|
-          if range.begin != range.end
-            "#{range.begin}–#{range.end}"
-          else
-            range.begin
-          end
-        end
-        rows = die_table.rows.map(&:to_a)
-        rows.map! { |row| [filter[row[0]], row[1]] }
+      Options:
+    TEXT
 
-        table = TTY::Table.new(header: [die_table.die, 'Result'], rows: rows)
-        puts table.render(:unicode, padding: [0, 1])
+    opt :dice, 'Die type to generate table for',
+        type: :strings, default: %w(d4 d6 d8 d10 d12 d20)
+    opt :drop_rows, 'Drop low probability rows', default: false
+  end
+
+  input_file = ARGV.first
+  Trollop::educate unless input_file
+
+  data = WarRoom::DieTable::Generator.load_yaml(input_file)
+  die_table = WarRoom::DieTable::Generator.generate(data, **cli_opts)
+  if die_table
+    filter = lambda do |range|
+      if range.begin != range.end
+        "#{range.begin}–#{range.end}"
       else
-        puts 'Unable to generate table for the given die/dice'
+        range.begin
       end
     end
+    rows = die_table.rows.map(&:to_a)
+    rows.map! { |row| [filter[row[0]], row[1]] }
+
+    table = TTY::Table.new(header: [die_table.die, 'Result'], rows: rows)
+    puts table.render(:unicode, padding: [0, 1])
+  else
+    puts 'Unable to generate table for the given die/dice'
   end
 end
-
-exit run(ARGV)
