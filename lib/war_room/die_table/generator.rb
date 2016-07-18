@@ -9,7 +9,7 @@ module WarRoom
       module_function
 
       class WeightRow < Dry::Types::Struct
-        attribute :weight, Types::Coercible::Float
+        attribute :weight, Types::Coercible::Rational
         attribute :value, Types::Coercible::String
 
         def +(other)
@@ -112,11 +112,6 @@ module WarRoom
           # If we can't drop rows, we can't generate
           # a valid table for this die size
           return nil if include_all
-
-          # If we're allowed to drop rows, we preemptively drop
-          # any row with a weight lower than the nth highest weight.
-          cut_off = table.map(&:weight).sort.last(die_size).first
-          table = table.reject { |row| row.weight < cut_off }
         end
 
         # Normalize weights to the given die size
