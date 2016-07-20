@@ -18,6 +18,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'trollop', '~> 2.1'
   spec.add_dependency 'dry-types', '~> 0.8.0'
+  spec.add_dependency 'dry-initializer', '~> 0.4.0'
   spec.add_dependency 'tty', '~> 0.5.0'
 
   spec.add_development_dependency 'bundler', '~> 1.10'

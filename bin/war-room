@@ -3,14 +3,13 @@
 
 require 'war_room'
 require 'trollop'
-require 'tty-table'
 
-executable = File.basename(__FILE__)
+EXECUTABLE = File.basename(__FILE__)
 _ = Trollop::options do
   banner <<~TEXT.chomp
     A collection of tools for table-top RPG game-masters.
 
-    Usage: #{executable} <command> [options]
+    Usage: #{EXECUTABLE} <command> [options]
 
     Commands:
       table     Generate a roll-table
@@ -22,44 +21,9 @@ _ = Trollop::options do
   stop_on 'table'
 end
 
-cmd = ARGV.shift
-Trollop::educate unless cmd
-
-case cmd
+case ARGV.shift
 when 'table'
-  cli_opts = Trollop::options do
-    banner <<~TEXT.chomp
-      Generate a roll-table
-
-      Usage: #{executable} #{cmd} <data.yml> [options]
-
-      Options:
-    TEXT
-
-    opt :dice, 'Die type to generate table for',
-        type: :strings, default: %w(d4 d6 d8 d10 d12 d20)
-    opt :drop_rows, 'Drop low probability rows', default: false
-  end
-
-  input_file = ARGV.first
-  Trollop::educate unless input_file
-
-  data = WarRoom::DieTable::Generator.load_yaml(input_file)
-  die_table = WarRoom::DieTable::Generator.generate(data, **cli_opts)
-  if die_table
-    filter = lambda do |range|
-      if range.begin != range.end
-        "#{range.begin}–#{range.end}"
-      else
-        range.begin
-      end
-    end
-    rows = die_table.rows.map(&:to_a)
-    rows.map! { |row| [filter[row[0]], row[1]] }
-
-    table = TTY::Table.new(header: [die_table.die, 'Result'], rows: rows)
-    puts table.render(:unicode, padding: [0, 1])
-  else
-    puts 'Unable to generate table for the given die/dice'
-  end
+  require 'war_room/table'
+else
+  Trollop::educate
 end
