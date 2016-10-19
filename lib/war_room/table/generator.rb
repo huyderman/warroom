@@ -18,6 +18,11 @@ module WarRoom
       def generate(dice)
         tables = dice.map do |die|
           case die
+          when 'd0'
+            generate_nn(0, 1, die)
+          when /^d(%+)$/
+            digits = Regexp.last_match(1).length
+            generate_nn(0, digits+1, die)
           when /^d([0-9]+)$/
             die_size = Regexp.last_match(1)
             digits   = die_size.length
@@ -26,8 +31,6 @@ module WarRoom
             else
               generate_linear(die_size.to_i, die)
             end
-          when 'd%'
-            generate_nn(0, 2, die)
           else
             raise "Die type not supported: #{die}"
           end
@@ -41,14 +44,14 @@ module WarRoom
       def generate_nn(digit, digits, die)
         percentile_digit = digit == 0
         digit            = 10 if percentile_digit
-        table            = generate_linear((digit**digits).to_i)
+        table            = generate_linear((digit**digits).to_i, die)
         table            = DieTable.new(**table, die: die)
 
         if percentile_digit
-          numbers = ([(0...digit).to_a] * digits).reduce(&:product).map(&:join)
+          numbers = ([(0...digit).to_a] * digits).reduce(&:product).map(&Kernel.method(:Array)).map(&:join)
           numbers.push(numbers.shift)
         else
-          numbers = ([(1..digit).to_a] * digits).reduce(&:product).map(&:join)
+          numbers = ([(1..digit).to_a] * digits).reduce(&:product).map(&Kernel.method(:Array)).map(&:join)
         end
 
         rows = table.rows.map do |row|

@@ -19,13 +19,38 @@ options = Trollop.options do
     Options:
   TEXT
 
-  opt :dice, 'Die type to generate table for',
-      type: :strings, default: %w(d4 d6 d8 d10 d12 d20)
+  dice_desc = <<~TEXT.chomp
+    Space seperated list of dice to consider when creating table.
+
+    The following are supported:
+      * dX       - Regular dice (d6, d20, d100 etc.)
+      * d0       - A 10 sided dice, but '10' show as '0'
+      * dXX…     - Digit dice, where each die represents a separate digit (d66, d666 or d00)
+      * d%, d%%… - Alternate names for d00, d000, etc.
+      * standard - alias for [d4 d6 d8 d10 d12 d20]
+      * extended - alias for [d3 d4 d5 d6 d7 d8 d10 d12 d14 d16 d20 d24 d30]
+      * all      - alias for [d3 d4 d5 d6 d7 d8 d9 d10 d11 d12 d13 d14 d15 d16 d18 d20 d22 d24 d30]
+  TEXT
+  opt :dice, dice_desc, type: :strings, default: %w(standard)
   opt :drop_rows, 'Drop low probability rows', default: false
 end
 
 input_file = ARGV.first
 Trollop.educate unless input_file
+
+options[:dice].map! do |die|
+  case die
+  when 'standard'
+    %w(d4 d6 d8 d10 d12 d20)
+  when 'extended'
+    %w(d3 d4 d5 d6 d7 d8 d10 d12 d14 d16 d20 d24 d30)
+  when 'all'
+    %w(d3 d4 d5 d6 d7 d8 d9 d10 d11 d12 d13 d14 d15 d16 d18 d20 d22 d24 d30)
+  else
+    die
+  end
+end
+options[:dice].flatten!
 
 rows         = YAML.load_file(input_file)
                    .map(&:flatten)
