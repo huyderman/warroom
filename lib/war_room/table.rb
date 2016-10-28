@@ -10,6 +10,10 @@ require 'yaml'
 
 cmd = File.basename(__FILE__)
 
+DICE_STANDARD = %w(d4 d6 d8 d10 d12 d20).freeze
+DICE_EXTENDED = %w(d3 d4 d5 d6 d7 d8 d10 d12 d14 d16 d20 d24 d30).freeze
+DICE_ALL      = %w(d3 d4 d5 d6 d7 d8 d9 d10 d11 d12 d13 d14 d15 d16 d18 d20 d22 d24 d30).freeze
+
 options = Trollop.options do
   banner <<~TEXT.chomp
     Generate a roll-table
@@ -27,9 +31,9 @@ options = Trollop.options do
       * d0       - A 10 sided dice, but '10' show as '0'
       * dXX…     - Digit dice, where each die represents a separate digit (d66, d666 or d00)
       * d%, d%%… - Alternate names for d00, d000, etc.
-      * standard - alias for [d4 d6 d8 d10 d12 d20]
-      * extended - alias for [d3 d4 d5 d6 d7 d8 d10 d12 d14 d16 d20 d24 d30]
-      * all      - alias for [d3 d4 d5 d6 d7 d8 d9 d10 d11 d12 d13 d14 d15 d16 d18 d20 d22 d24 d30]
+      * standard - alias for [#{DICE_STANDARD.join(' ')}]
+      * extended - alias for [#{DICE_EXTENDED.join(' ')}]
+      * all      - alias for [#{DICE_ALL.join(' ')}]
   TEXT
   opt :dice, dice_desc, type: :strings, default: %w(standard)
   opt :drop_rows, 'Drop low probability rows', default: false
@@ -41,11 +45,11 @@ Trollop.educate unless input_file
 options[:dice].map! do |die|
   case die
   when 'standard'
-    %w(d4 d6 d8 d10 d12 d20)
+    DICE_STANDARD
   when 'extended'
-    %w(d3 d4 d5 d6 d7 d8 d10 d12 d14 d16 d20 d24 d30)
+    DICE_EXTENDED
   when 'all'
-    %w(d3 d4 d5 d6 d7 d8 d9 d10 d11 d12 d13 d14 d15 d16 d18 d20 d22 d24 d30)
+    DICE_ALL
   else
     die
   end
