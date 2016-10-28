@@ -1,10 +1,10 @@
 # frozen_string_literal: true
-require 'dry-types'
+require 'dry-struct'
 require 'war_room/types'
 
 module WarRoom
   module Table
-    class DieTableRow < Dry::Types::Value
+    class DieTableRow < Dry::Struct::Value
       attribute :range, Types::Range
       attribute :result, Types::Coercible::String
 

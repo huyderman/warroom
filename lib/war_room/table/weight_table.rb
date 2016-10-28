@@ -1,11 +1,11 @@
 # frozen_string_literal: true
-require 'dry-types'
+require 'dry-struct'
 require 'war_room/types'
 require 'war_room/table/weight_table_row'
 
 module WarRoom
   module Table
-    class WeightTable < Dry::Types::Struct
+    class WeightTable < Dry::Struct
       include Enumerable
 
       attribute :rows, Types::Array.member(WeightTableRow)

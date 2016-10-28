@@ -19,7 +19,7 @@ options = Trollop.options do
     Options:
   TEXT
 
-  dice_desc = <<~TEXT.chomp
+  dice_desc = <<~TEXT
     Space seperated list of dice to consider when creating table.
 
     The following are supported:

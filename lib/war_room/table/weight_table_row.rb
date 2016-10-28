@@ -1,10 +1,10 @@
 # frozen_string_literal: true
-require 'dry-types'
+require 'dry-struct'
 require 'war_room/types'
 
 module WarRoom
   module Table
-    class WeightTableRow < Dry::Types::Value
+    class WeightTableRow < Dry::Struct::Value
       attribute :weight, Types::Coercible::Rational
       attribute :value, Types::Coercible::String
 
